@@ -1,0 +1,173 @@
+"""
+Project name: Who is the Same Like Me!
+Project submitted by Prerak Patel (1696000) and Javid Nabizade(1707252)
+
+Submission date: 03.04.2024
+"""
+
+import matplotlib.pyplot as plt #to be used for data visualization 
+import csv                      #to be used for reading and saving the csv files
+
+class User:
+    def __init__(self, name, country, nationality, profession, food, drink, hobby):
+        self.name = name.casefold() #casefold is used in both __init__ under User class and update_user_details under UserManagement class
+        self.country = country.casefold()
+        self.nationality = nationality.casefold()
+        self.profession = profession.casefold()
+        self.food = food.casefold()
+        self.drink = drink.casefold()
+        self.hobby = hobby.casefold()  #We weren't able to add a code to display multiple hobbies, therefore we decided to gather info from the user as a single hobby (hobby CANT BE CASEFOLDED)
+        
+    def update_details(self, **kwargs):
+        for key, value in kwargs.items():
+            if hasattr(self, key):
+                setattr(self, key, value)
+    
+    def to_csv(self):
+        return f"{self.name},{self.country},{self.nationality},{self.profession},{self.food},{self.drink},{self.hobby}"
+    
+                 
+class UserManagement:
+    def __init__(self):
+        self.users_list = []
+        self.load_users_from_csv("C:/users/cubix/Desktop/final_project/existing_data.csv") #please change the file destination to not encounter any error.
+        
+    def load_users_from_csv(self, filename):
+        try:
+            with open(filename, 'r') as file:
+                csvreader = csv.reader(file)
+                next(csvreader)  #skips the header in our csv file
+                for row in csvreader:
+                    if len(row) == 7:  #in our csv file, we have 7 rows
+                        name, country, nationality, profession, food, drink, hobby = row
+                        user = User(name, country, nationality, profession, food, drink, hobby)
+                        self.users_list.append(user)
+        except FileNotFoundError:
+            print(f"CSV file '{filename}' not found. No initial users loaded.")
+        except Exception as e:
+            print(f"An error occurred while loading users from CSV: {e}")
+    
+    def sign_up(self):
+        name = input("Enter your name: ")
+        country = input("Enter your country: ")
+        nationality = input("Enter your nationality: ")
+        profession = input("Enter your profession: ")
+        food = input("Enter your favorite food: ")
+        drink = input("Enter your favorite drink: ")
+        hobby = input("Enter your hobby: ")
+        new_user = User(name, country, nationality, profession, food, drink, hobby)
+        self.users_list.append(new_user)
+        print("User signed up successfully!")
+     
+         
+    def log_in(self):
+        name = input("Enter your name: ")
+        found_user = next((user for user in self.users_list if user.name == name), None)
+        if found_user:
+            print("Login successful!")
+            return found_user
+        else:
+            print("User not found. Please check your name.")
+            
+            
+            
+    def update_user_details(self, user):
+        country = input("Enter your new country (leave blank to skip): ")
+        nationality = input("Enter your new nationality: ")
+        profession = input("Enter your new profession: ")
+        food = input("Enter your new favorite food: ")
+        drink = input("Enter your new favorite drink: ")
+        hobby = input("Enter your new hobby: ")
+        if country:
+            user.update_details(country=country.casefold())
+        elif nationality:
+            user.update_details(nationality=nationality.casefold())
+        elif profession:
+            user.update_details(profession=profession.casefold())
+        elif food:
+            user.update_details(food=food.casefold())
+        elif drink:
+            user.update_details(drink=drink.casefold())
+        elif hobby:
+            user.update_details(hobby=hobby.casefold())
+        
+        print("Details updated successfully!")
+
+    def find_users_with_specific_attribute(self, attribute, value):
+        found_users = [user for user in self.users_list if getattr(user, attribute, None) == value]
+        if found_users:
+            print(f"Users with {attribute} = {value}:")
+            for user in found_users:
+                print(user.name)
+        else:
+            print(f"No users found with {attribute} = {value}.")
+
+    def save_users_to_csv(self, filename="users_info.csv"):
+            with open(filename, 'w') as file:
+                for user in self.users_list:
+                    file.write(user.to_csv() + "\n")
+
+class DataVisualization:
+    @staticmethod #the decorator is used to improve the code's readability and make it possible to reuse it Ref: https://hostman.com/tutorials/python-static-method/
+    def visualize_attribute_distribution(users_list, attribute):
+        attribute_values = [getattr(user, attribute, '') for user in users_list]
+        if not attribute_values:
+            print("No data available for visualization.")
+            return
+        #Count occurrences of each value
+        value_counts = {}
+        for value in attribute_values:
+            if value in value_counts:
+                value_counts[value] += 1
+            else:
+                value_counts[value] = 1
+        plt.figure(figsize=(10, 6))
+        plt.bar(range(len(value_counts)), list(value_counts.values()), align='center')
+        plt.xticks(range(len(value_counts)), list(value_counts.keys()), rotation=45)
+        plt.ylabel('Number of people')
+        plt.title(f'Distribution of {attribute}')
+        plt.show()
+
+            
+def main():
+    user_management = UserManagement()
+    print("Welcome to the Who is the Same Like Me!")
+    while True:
+        print("\nOptions:")
+        print("1. Sign up")
+        print("2. Log in")
+        print("3. Update user details")
+        print("4. Find users with a specific attribute")
+        print("5. Visualize attribute distribution")
+        print("6. Save users to CSV")
+        print("7. Exit")
+        choice = input("Please choose an option: ")
+
+        if choice == "1":
+            user_management.sign_up()
+        elif choice == "2":
+            user_management.log_in()
+        elif choice == "3":
+            user = user_management.log_in()  #Log in to get the user object
+            if user:
+                user_management.update_user_details(user)
+        elif choice == "4":
+            attribute = input("Enter the attribute to search by: ")
+            value = input("Enter the value of the attribute: ")
+            user_management.find_users_with_specific_attribute(attribute, value)
+        elif choice == "5":
+            attribute = input("Enter the attribute to visualize: ")
+            DataVisualization.visualize_attribute_distribution(user_management.users_list, attribute)
+        elif choice == "6":
+            user_management.save_users_to_csv()  #Save users to csv file
+            print("Users saved to CSV successfully.")
+        elif choice == "7": 
+            print("Exiting the system. Goodbye!")
+            break
+        else:
+            print("Invalid option. Please try again.")
+            
+ 
+
+if __name__ == "__main__":
+    main()
